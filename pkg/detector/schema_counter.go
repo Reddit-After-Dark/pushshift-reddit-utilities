@@ -7,17 +7,21 @@ import (
 	"sync"
 )
 
-type SchemaCounter struct {
-	Schemas map[int]map[string]int
-	parser  fastjson.Parser
 
+
+type SchemaCounter struct {
+	Result map[conveyor.Chunk]map[int]int
+
+	Schemas schema.Schemas
+
+	parser fastjson.Parser
 	sync.Mutex
 }
 
 func NewSchemaCounter() *SchemaCounter {
 	return &SchemaCounter{
-		Schemas: make(map[int]map[string]int),
-		parser:  fastjson.Parser{},
+		Result: make(map[conveyor.Chunk]map[int]int),
+		parser: fastjson.Parser{},
 	}
 }
 
@@ -43,38 +47,21 @@ func (s *SchemaCounter) Process(line []byte, metadata conveyor.LineMetadata) (ou
 	tempSchema := schema.Schema{Fields: fields}
 	key := tempSchema.Key()
 
-	chunkId := metadata.Chunk.Id
+	ChunkId := metadata.Chunk.Id
 
-	_, set := s.Schemas[chunkId]
+	_, set := s.Result[schema.ChunkId(ChunkId)]
 	if !set {
-		s.Schemas[chunkId] = map[string]int{key: 1}
+		s.Result[schema.ChunkId(ChunkId)] = map[schema.SchemaId]int{key: 1}
 		return nil, nil
 	}
 
-	_, set = s.Schemas[chunkId][key]
+	_, set = s.Result[ChunkId][key]
 	if !set {
-		s.Schemas[chunkId][key] = 1
+		s.Result[ChunkId][key] = 1
 	} else {
-		s.Schemas[chunkId][key] ++
+		s.Result[ChunkId][key] ++
 	}
 
 	return nil, nil
 }
 
-func (s *SchemaCounter) Result() map[string]int {
-	result := make(map[string]int)
-
-	for _, schemas := range s.Schemas {
-		for schemaName, count := range schemas {
-			_, set := result[schemaName]
-			if set {
-				result[schemaName] += count
-			} else {
-				result[schemaName] = count
-			}
-		}
-
-	}
-
-	return result
-}
