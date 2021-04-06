@@ -5,11 +5,8 @@ import (
 	"strings"
 )
 
-
 type Schema struct {
-	Fields    []string
-	StartLine int
-	EndLine   int
+	Fields    []string `json:"fields"`
 }
 
 func (s *Schema) Key() string {
@@ -17,23 +14,29 @@ func (s *Schema) Key() string {
 	return strings.Join(s.Fields, ",")
 }
 
-
 type Schemas struct {
-	schemas []Schema
+	Schemas []Schema `json:"schemas"`
 }
 
-func (s *Schemas) AddSchema(newSchema Schema) bool {
-	for _, schema := range s.schemas {
+func (s *Schemas) AddSchema(newSchema Schema) {
+	for _, schema := range s.Schemas {
 		if schema.Key() == newSchema.Key() {
-			return false
+			return
 		}
 	}
 
-	s.schemas = append(s.schemas, newSchema)
-	return true
+	s.Schemas = append(s.Schemas, newSchema)
+	return
 }
 
-func (s *Schemas) GetSchema(newSchema Schema) bool {
+func (s *Schemas) GetSchemaID(newSchema Schema) int {
+	s.AddSchema(newSchema)
 
+	for index, schema := range s.Schemas {
+		if schema.Key() == newSchema.Key() {
+			return index
+		}
+	}
+
+	return 0
 }
-
