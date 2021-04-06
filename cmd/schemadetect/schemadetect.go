@@ -1,10 +1,11 @@
 package main
 
 import (
-	"fmt"
+	"encoding/json"
 	"github.com/fgehrlicher/conveyor"
 	"github.com/fgehrlicher/pushshift-reddit-utilities/pkg/detector"
 	"log"
+	"os"
 )
 
 func main() {
@@ -15,17 +16,15 @@ func main() {
 
 	sd := detector.NewSchemaCounter()
 
-	result := conveyor.NewQueue(chunks, 10, sd).Work()
+	queueResult := conveyor.NewQueue(chunks, 10, sd).Work()
 
-	fmt.Printf(
-		"processed %d lines.\n%d chunks failed.\n",
-		result.Lines,
-		result.FailedChunks,
-	)
-
-	r := sd.Result()
-
-	for k, v := range r {
-		fmt.Printf("%v\n%v\n\n", k, v)
+	result, err := sd.GetResult(queueResult.Results)
+	if err != nil {
+		log.Fatal(err)
 	}
+
+	resultFile, _ := os.Create("testresult.json")
+	encoder := json.NewEncoder(resultFile)
+
+	_ = encoder.Encode(result)
 }
