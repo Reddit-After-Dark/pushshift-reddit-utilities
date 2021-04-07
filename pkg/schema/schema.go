@@ -6,7 +6,7 @@ import (
 )
 
 type Schema struct {
-	Fields    []string `json:"fields"`
+	Fields []string `json:"fields"`
 }
 
 func (s *Schema) Key() string {
@@ -15,7 +15,16 @@ func (s *Schema) Key() string {
 }
 
 type Schemas struct {
-	Schemas []Schema `json:"schemas"`
+	Schemas map[int]Schema `json:"schemas"`
+
+	index int
+}
+
+func NewSchemas() Schemas {
+	return Schemas{
+		Schemas: make(map[int]Schema),
+		index:   1,
+	}
 }
 
 func (s *Schemas) AddSchema(newSchema Schema) {
@@ -25,7 +34,8 @@ func (s *Schemas) AddSchema(newSchema Schema) {
 		}
 	}
 
-	s.Schemas = append(s.Schemas, newSchema)
+	s.Schemas[s.index] = newSchema
+	s.index++
 	return
 }
 

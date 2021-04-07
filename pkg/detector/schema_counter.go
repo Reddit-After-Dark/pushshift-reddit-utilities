@@ -40,6 +40,7 @@ func NewSchemaCounter() *SchemaCounter {
 	return &SchemaCounter{
 		Result: make(map[int]ChunkResult),
 		parser: fastjson.Parser{},
+		Schemas: schema.NewSchemas(),
 	}
 }
 
