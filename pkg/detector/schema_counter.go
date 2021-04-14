@@ -16,7 +16,7 @@ type SchemaCounter struct {
 	Result  map[int]ChunkResult
 	Schemas schema.Schemas
 
-	parser fastjson.Parser
+	parser map[int]*fastjson.Parser
 	sync.Mutex
 }
 
@@ -61,12 +61,15 @@ func (s *SchemaCounterResult) MarshalJSON() ([]byte, error) {
 func NewSchemaCounter() *SchemaCounter {
 	return &SchemaCounter{
 		Result:  make(map[int]ChunkResult),
-		parser:  fastjson.Parser{},
+		parser:  make(map[int]*fastjson.Parser),
 		Schemas: schema.NewSchemas(),
 	}
 }
 
 func (s *SchemaCounter) IncrementSchema(schema schema.Schema, c *conveyor.Chunk) {
+	s.Lock()
+	defer s.Unlock()
+
 	_, ok := s.Result[c.Id]
 	if !ok {
 		s.Result[c.Id] = ChunkResult{
@@ -83,10 +86,21 @@ func (s *SchemaCounter) IncrementSchema(schema schema.Schema, c *conveyor.Chunk)
 	}
 }
 
-func (s *SchemaCounter) Process(line []byte, metadata conveyor.LineMetadata) (out []byte, err error) {
+func (s *SchemaCounter) getParser(c *conveyor.Chunk) *fastjson.Parser {
 	s.Lock()
 	defer s.Unlock()
-	v, err := s.parser.ParseBytes(line)
+
+	if _, set := s.parser[c.Id]; !set {
+		s.parser[c.Id] = &fastjson.Parser{}
+	}
+
+	return s.parser[c.Id]
+}
+
+func (s *SchemaCounter) Process(line []byte, metadata conveyor.LineMetadata) (out []byte, err error) {
+	parser := s.getParser(metadata.Chunk)
+
+	v, err := parser.ParseBytes(line)
 	if err != nil {
 		return nil, fmt.Errorf("cannot parse line: %w", err)
 	}
