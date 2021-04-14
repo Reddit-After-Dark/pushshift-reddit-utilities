@@ -1,8 +1,10 @@
 package detector
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 	"sync"
 
 	"github.com/fgehrlicher/conveyor"
@@ -19,7 +21,7 @@ type SchemaCounter struct {
 }
 
 type ChunkResult struct {
-	Meta    ChunkMeta   `json:"chunk_metadata"`
+	Meta    ChunkMeta   `json:"chunk"`
 	Schemas map[int]int `json:"schemas"`
 }
 
@@ -36,10 +38,30 @@ type SchemaCounterResult struct {
 	Schemas      schema.Schemas      `json:"schemas"`
 }
 
+func (s *SchemaCounterResult) MarshalJSON() ([]byte, error) {
+	chunkResults := make([]ChunkResult, 0, len(s.ChunkResults))
+
+	for _, result := range s.ChunkResults {
+		chunkResults = append(chunkResults, result)
+	}
+
+	sort.Slice(chunkResults, func(i, j int) bool {
+		return chunkResults[i].Meta.ChunkId < chunkResults[j].Meta.ChunkId
+	})
+
+	return json.Marshal(struct {
+		ChunkResults []ChunkResult  `json:"chunk_results"`
+		Schemas      schema.Schemas `json:"schemas"`
+	}{
+		Schemas:      s.Schemas,
+		ChunkResults: chunkResults,
+	})
+}
+
 func NewSchemaCounter() *SchemaCounter {
 	return &SchemaCounter{
-		Result: make(map[int]ChunkResult),
-		parser: fastjson.Parser{},
+		Result:  make(map[int]ChunkResult),
+		parser:  fastjson.Parser{},
 		Schemas: schema.NewSchemas(),
 	}
 }
@@ -105,7 +127,7 @@ func (s *SchemaCounter) GetResult(finishedChunks []conveyor.ChunkResult) (*Schem
 		chunk := r.Chunk
 
 		result.ChunkResults[id] = ChunkResult{
-			Meta:    ChunkMeta{
+			Meta: ChunkMeta{
 				ChunkId:  chunk.Id,
 				FileName: chunk.In.GetName(),
 				Size:     chunk.RealSize,
