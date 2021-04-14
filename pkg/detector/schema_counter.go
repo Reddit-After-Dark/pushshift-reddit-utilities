@@ -114,6 +114,13 @@ func (s *SchemaCounter) GetResult(finishedChunks []conveyor.ChunkResult) (*Schem
 			},
 			Schemas: result.ChunkResults[id].Schemas,
 		}
+
+		for schemaID, count := range result.ChunkResults[id].Schemas {
+			schemaItem := result.Schemas.Schemas[schemaID]
+			schemaItem.Count += count
+			result.Schemas.Schemas[schemaID] = schemaItem
+		}
+
 	}
 
 	return &result, nil

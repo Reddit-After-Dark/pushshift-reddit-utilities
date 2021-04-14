@@ -9,21 +9,21 @@ import (
 )
 
 func main() {
-	chunks, err := conveyor.GetChunksFromFile("RC_2019-12", 100*1024*1024, nil)
+	chunks, err := conveyor.GetChunksFromFile("RC_2019-12", 10*1024*1024, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	sd := detector.NewSchemaCounter()
 
-	queueResult := conveyor.NewQueue(chunks, 10, sd).Work()
+	queueResult := conveyor.NewQueue(chunks[:10], 10, sd).Work()
 
 	result, err := sd.GetResult(queueResult.Results)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	resultFile, _ := os.Create("testresult.json")
+	resultFile, _ := os.Create("RC_2019-12_schemas.json")
 	encoder := json.NewEncoder(resultFile)
 
 	_ = encoder.Encode(result)
