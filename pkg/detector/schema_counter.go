@@ -51,10 +51,10 @@ func (s *SchemaCounterResult) MarshalJSON() ([]byte, error) {
 
 	return json.Marshal(struct {
 		ChunkResults []ChunkResult  `json:"chunk_results"`
-		Schemas      schema.Schemas `json:"schemas"`
+		schema.Schemas
 	}{
-		Schemas:      s.Schemas,
 		ChunkResults: chunkResults,
+		Schemas: s.Schemas,
 	})
 }
 

@@ -1,7 +1,6 @@
 package schema
 
 import (
-	"encoding/json"
 	"sort"
 	"strings"
 )
@@ -27,10 +26,6 @@ func NewSchemas() Schemas {
 		Schemas: make(map[int]Schema),
 		index:   1,
 	}
-}
-
-func (s *Schemas) MarshalJSON() ([]byte, error) {
-	return json.Marshal(s.Schemas)
 }
 
 func (s *Schemas) AddSchema(newSchema Schema) {
