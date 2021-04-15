@@ -86,19 +86,19 @@ func (s *SchemaCounter) IncrementSchema(schema schema.Schema, c *conveyor.Chunk)
 	}
 }
 
-func (s *SchemaCounter) getParser(c *conveyor.Chunk) *fastjson.Parser {
+func (s *SchemaCounter) getParser(meta *conveyor.LineMetadata) *fastjson.Parser {
 	s.Lock()
 	defer s.Unlock()
 
-	if _, set := s.parser[c.Id]; !set {
-		s.parser[c.Id] = &fastjson.Parser{}
+	if _, set := s.parser[meta.WorkerId]; !set {
+		s.parser[meta.WorkerId] = &fastjson.Parser{}
 	}
 
-	return s.parser[c.Id]
+	return s.parser[meta.WorkerId]
 }
 
 func (s *SchemaCounter) Process(line []byte, metadata conveyor.LineMetadata) (out []byte, err error) {
-	parser := s.getParser(metadata.Chunk)
+	parser := s.getParser(&metadata)
 
 	v, err := parser.ParseBytes(line)
 	if err != nil {
