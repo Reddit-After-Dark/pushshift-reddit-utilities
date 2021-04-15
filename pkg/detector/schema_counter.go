@@ -138,15 +138,13 @@ func (s *SchemaCounter) GetResult(finishedChunks []conveyor.ChunkResult) (*Schem
 			return nil, fmt.Errorf("chunk failed: %w", r.Err)
 		}
 
-		chunk := r.Chunk
-
 		result.ChunkResults[id] = ChunkResult{
 			Meta: ChunkMeta{
-				ChunkId:  chunk.Id,
-				FileName: chunk.In.GetName(),
-				Size:     chunk.RealSize,
-				Offset:   chunk.RealOffset,
-				Lines:    chunk.LinesProcessed,
+				ChunkId:  r.Chunk.Id,
+				FileName: r.Chunk.In.GetHandleID(),
+				Size:     r.RealSize,
+				Offset:   r.RealOffset,
+				Lines:    r.Lines,
 			},
 			Schemas: result.ChunkResults[id].Schemas,
 		}
