@@ -2,14 +2,18 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/fgehrlicher/conveyor"
-	"github.com/fgehrlicher/pushshift-reddit-utilities/pkg/detector"
 	"log"
 	"os"
+
+	"github.com/fgehrlicher/conveyor"
+	"github.com/fgehrlicher/pushshift-reddit-utilities/pkg/detector"
 )
 
 func main() {
-	chunks, err := conveyor.GetChunksFromFile("RC_2019-12", 100*1024*1024, nil)
+	input := os.Args[1]
+	output := os.Args[2]
+
+	chunks, err := conveyor.GetChunksFromFile(input, 100*1024*1024, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -23,8 +27,15 @@ func main() {
 		log.Fatal(err)
 	}
 
-	resultFile, _ := os.Create("RC_2019-12_schemas.json")
+	resultFile, err := os.Create(output)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	encoder := json.NewEncoder(resultFile)
 
-	_ = encoder.Encode(result)
+	err = encoder.Encode(result)
+	if err != nil {
+		log.Fatal(err)
+	}
 }

@@ -23,14 +23,17 @@ type SchemaCounter struct {
 type ChunkResult struct {
 	Meta    ChunkMeta   `json:"chunk"`
 	Schemas map[int]int `json:"schemas"`
+
+	FirstRetrievedOn int `json:"-"`
 }
 
 type ChunkMeta struct {
-	ChunkId  int    `json:"chunk_id"`
-	FileName string `json:"file_name"`
-	Size     int    `json:"size"`
-	Offset   int64  `json:"offset"`
-	Lines    int    `json:"lines"`
+	ChunkId          int    `json:"chunk_id"`
+	FirstRetrievedOn int    `json:"retrieved_on"`
+	FileName         string `json:"file_name"`
+	Size             int    `json:"size"`
+	Offset           int64  `json:"offset"`
+	Lines            int    `json:"lines"`
 }
 
 type SchemaCounterResult struct {
@@ -50,11 +53,11 @@ func (s *SchemaCounterResult) MarshalJSON() ([]byte, error) {
 	})
 
 	return json.Marshal(struct {
-		ChunkResults []ChunkResult  `json:"chunk_results"`
+		ChunkResults []ChunkResult `json:"chunk_results"`
 		schema.Schemas
 	}{
 		ChunkResults: chunkResults,
-		Schemas: s.Schemas,
+		Schemas:      s.Schemas,
 	})
 }
 
@@ -66,14 +69,15 @@ func NewSchemaCounter() *SchemaCounter {
 	}
 }
 
-func (s *SchemaCounter) IncrementSchema(schema schema.Schema, c *conveyor.Chunk) {
+func (s *SchemaCounter) IncrementSchema(schema schema.Schema, c *conveyor.Chunk, retrievedOn int) {
 	s.Lock()
 	defer s.Unlock()
 
 	_, ok := s.Result[c.Id]
 	if !ok {
 		s.Result[c.Id] = ChunkResult{
-			Schemas: make(map[int]int),
+			FirstRetrievedOn: retrievedOn,
+			Schemas:          make(map[int]int),
 		}
 	}
 
@@ -115,9 +119,14 @@ func (s *SchemaCounter) Process(line []byte, metadata conveyor.LineMetadata) (ou
 		fields = append(fields, string(key))
 	})
 
+	retrievedOn, err := object.Get("retrieved_on").Int()
+	if err != nil {
+		return nil, err
+	}
+
 	tmpSchema := schema.Schema{Fields: fields}
 
-	s.IncrementSchema(tmpSchema, metadata.Chunk)
+	s.IncrementSchema(tmpSchema, metadata.Chunk, retrievedOn)
 
 	return nil, nil
 }
@@ -129,6 +138,7 @@ func (s *SchemaCounter) GetResult(finishedChunks []conveyor.ChunkResult) (*Schem
 	}
 
 	for id := range result.ChunkResults {
+		chunkResult := result.ChunkResults[id]
 		r, err := getChunkResultForId(id, finishedChunks)
 		if err != nil {
 			return nil, err
@@ -140,11 +150,12 @@ func (s *SchemaCounter) GetResult(finishedChunks []conveyor.ChunkResult) (*Schem
 
 		result.ChunkResults[id] = ChunkResult{
 			Meta: ChunkMeta{
-				ChunkId:  r.Chunk.Id,
-				FileName: r.Chunk.In.GetHandleID(),
-				Size:     r.RealSize,
-				Offset:   r.RealOffset,
-				Lines:    r.Lines,
+				ChunkId:          r.Chunk.Id,
+				FileName:         r.Chunk.In.GetHandleID(),
+				Size:             r.RealSize,
+				Offset:           r.RealOffset,
+				Lines:            r.Lines,
+				FirstRetrievedOn: chunkResult.FirstRetrievedOn,
 			},
 			Schemas: result.ChunkResults[id].Schemas,
 		}
